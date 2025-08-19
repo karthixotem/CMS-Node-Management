@@ -14,7 +14,9 @@
   - Create a new MySQL database and update .env file with credentials:
 
       DATABASE_USERNAME=
+    
       DATABASE_PASSWORD=
+    
       DATABASE_NAME=
       DATABASE_PORT=
       DATABASE_HOST=
