@@ -1,0 +1,340 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>CMS — Node Management</title>
+  <style>
+    :root{
+      --bg:#f6f8fb;
+      --card:#ffffff;
+      --muted:#6b7280;
+      --accent:#2563eb;
+      --success:#10b981;
+      --danger:#ef4444;
+      --glass: rgba(255,255,255,0.6);
+      --radius:12px;
+      --shadow: 0 6px 18px rgba(16,24,40,0.06);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    }
+    html,body{height:100%}
+    body{
+      margin:0;
+      padding:28px;
+      background: linear-gradient(180deg, #f8fafc 0%, var(--bg) 100%);
+      color:#0f172a;
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+    }
+
+    .container{
+      max-width:1100px;
+      margin:0 auto;
+    }
+
+    header{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:16px;
+      margin-bottom:20px;
+    }
+    .brand{
+      display:flex;
+      gap:14px;
+      align-items:center;
+    }
+    .logo{
+      width:44px;height:44px;border-radius:10px;
+      background:linear-gradient(135deg,var(--accent), #7c3aed);
+      display:grid;place-items:center;color:#fff;font-weight:700;box-shadow:var(--shadow);
+    }
+    h1{margin:0;font-size:20px}
+    .subtitle{color:var(--muted);font-size:13px;margin-top:4px}
+
+    /* top controls */
+    .controls{
+      display:flex;
+      gap:12px;
+      align-items:center;
+    }
+    .upload-card{
+      background:var(--card);
+      padding:14px;
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      display:flex;
+      gap:12px;
+      align-items:center;
+    }
+    .file-input{
+      display:flex;gap:12px;align-items:center;
+    }
+    .btn{
+      background:var(--accent); color:#fff; border:0;padding:8px 12px;border-radius:10px;cursor:pointer;font-weight:600;
+      box-shadow: 0 6px 20px rgba(37,99,235,0.12);
+    }
+    .btn.ghost{background:transparent;color:var(--accent);box-shadow:none;border:1px solid rgba(37,99,235,0.10)}
+    input[type=file]{display:none}
+    label.file-label{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border-radius:10px;border:1px dashed #e6eefc;background:#fbfdff;color:var(--muted);cursor:pointer}
+
+    main{margin-top:20px}
+
+    .grid{
+      display:grid;
+      grid-template-columns: 1fr 320px;
+      gap:18px;
+    }
+
+    /* left: nodes table */
+    .card{
+      background:var(--card);
+      padding:16px;border-radius:12px;box-shadow:var(--shadow);
+    }
+    table{width:100%;border-collapse:collapse}
+    thead th{font-size:12px;color:var(--muted);text-align:left;padding:10px 12px;border-bottom:1px solid #eef2f7}
+    tbody td{padding:12px;border-bottom:1px solid #f1f5f9;font-size:14px}
+    .status-pill{display:inline-block;padding:6px 10px;border-radius:999px;font-weight:600;font-size:13px}
+    .status-connected{background:rgba(16,185,129,0.12);color:var(--success)}
+    .status-disconnected{background:rgba(239,68,68,0.08);color:var(--danger)}
+    .small{font-size:13px;color:var(--muted)}
+
+    .actions button{margin-right:8px}
+
+    /* right: activity panel */
+    .panel-title{font-weight:700;margin:0 0 8px 0}
+    .activity-list{max-height:520px;overflow:auto;padding-right:6px}
+    .event{padding:10px;border-radius:10px;margin-bottom:10px;background:linear-gradient(180deg,#fbfdff,#fff);border:1px solid #f1f5f9}
+    .event .meta{font-size:12px;color:var(--muted)}
+    .event .msg{margin-top:6px;font-size:14px}
+
+    footer{margin-top:20px;color:var(--muted);font-size:13px;text-align:center}
+
+    /* responsive */
+    @media (max-width:920px){
+      .grid{grid-template-columns:1fr}
+      .controls{flex-direction:column;align-items:stretch}
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="brand">
+        <div class="logo">CMS</div>
+        <div>
+          <h1>Central Management — Node Dashboard</h1>
+          <div class="subtitle">Manage and distribute files to registered nodes — real-time status & logs</div>
+        </div>
+      </div>
+
+      <div class="controls">
+        <div class="upload-card">
+          <form id="uploadForm" style="display:flex;align-items:center;gap:12px;">
+            <div class="file-input">
+              <label class="file-label" for="file">Choose file</label>
+              <input id="file" name="file" type="file">
+              <div id="fileName" class="small">No file selected</div>
+            </div>
+            <button class="btn" id="uploadBtn" type="submit">Upload to All Nodes</button>
+          </form>
+        </div>
+        <button class="btn ghost" id="refreshBtn" title="Refresh nodes">Refresh</button>
+      </div>
+    </header>
+
+    <main>
+      <div class="grid">
+        <section class="card">
+          <h3 style="margin:0 0 12px 0">Nodes</h3>
+
+          <table aria-label="Nodes table">
+            <thead>
+              <tr>
+                <th>Node</th>
+                <th>Host</th>
+                <th>Status</th>
+                <th>Last Upload</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="nodesBody">
+              <!-- rows injected -->
+            </tbody>
+          </table>
+        </section>
+
+        <aside class="card">
+          <h3 class="panel-title">Activity</h3>
+          <div class="small">Realtime events from nodes and uploads</div>
+          <div id="activity" class="activity-list" aria-live="polite"></div>
+        </aside>
+      </div>
+
+      <footer>© Node Management · Live updates via WebSocket</footer>
+    </main>
+  </div>
+
+<script>
+/* ---------- Helpers ---------- */
+const api = async (path, opts={}) => {
+  const res = await fetch('/api' + path, opts);
+  if (!res.ok) {
+    const txt = await res.text();
+    console.warn('API error', res.status, txt);
+    throw new Error('API error');
+  }
+  return res.json();
+};
+
+const $ = (sel) => document.querySelector(sel);
+
+/* ---------- UI state ---------- */
+let nodes = [];                 // current node list
+const nodesMap = new Map();     // nodeId => row element (for updates)
+const activity = $('#activity');
+
+/* ---------- render helpers ---------- */
+function addActivity(text, type='info') {
+  const el = document.createElement('div');
+  el.className = 'event';
+  el.innerHTML = `<div class="meta">${new Date().toLocaleString()} • ${type}</div><div class="msg">${text}</div>`;
+  activity.prepend(el);
+  // keep only recent 80
+  while (activity.children.length > 80) activity.removeChild(activity.lastChild);
+}
+
+function statusPill(status) {
+  const cls = status === 'connected' ? 'status-connected' : 'status-disconnected';
+  return `<span class="status-pill ${cls}">${status}</span>`;
+}
+
+/* ---------- table rendering ---------- */
+function renderNodes(list){
+  nodes = list;
+  const tbody = $('#nodesBody');
+  tbody.innerHTML = '';
+  nodesMap.clear();
+
+  list.forEach(n => {
+    const tr = document.createElement('tr');
+    tr.dataset.nodeId = n.node_id;
+    tr.innerHTML = `
+      <td><strong>${n.node_id}</strong></td>
+      <td class="small">${n.ip}:${n.port}</td>
+      <td>${statusPill(n.status)}</td>
+      <td class="small">${n.last_upload_status || '-'}</td>
+      <td class="actions">
+        <button class="btn ghost" data-action="disconnect" data-node="${n.node_id}">Disconnect</button>
+        <button class="btn" data-action="inspect" data-node="${n.node_id}">Inspect</button>
+      </td>
+    `;
+    tbody.appendChild(tr);
+    nodesMap.set(n.node_id, tr);
+  });
+
+  // wire actions
+  tbody.querySelectorAll('button').forEach(b=>{
+    b.onclick = async (ev) => {
+      const action = b.dataset.action;
+      const nodeId = b.dataset.node;
+      if (action === 'disconnect') {
+        try {
+          await api(`/nodes/${encodeURIComponent(nodeId)}/disconnect`, { method: 'POST' });
+          addActivity(`Requested disconnect for ${nodeId}`, 'warn');
+          await refreshNodes();
+        } catch (err) { addActivity('Disconnect failed: ' + err.message, 'error'); }
+      } else if (action === 'inspect') {
+        addActivity(`Inspect requested for ${nodeId}`, 'info');
+      }
+    };
+  });
+}
+
+/* ---------- fetch/refresh ---------- */
+async function refreshNodes(){
+  try {
+    const data = await api('/nodes');
+    // normalize last_upload_status
+    data.forEach(d => { if (!d.last_upload_status) d.last_upload_status = '-'; });
+    renderNodes(data);
+  } catch (err) {
+    addActivity('Failed to fetch nodes: ' + err.message, 'error');
+  }
+}
+
+/* ---------- file upload ---------- */
+const fileInput = $('#file');
+const fileName = $('#fileName');
+fileInput.addEventListener('change', ()=> {
+  fileName.textContent = fileInput.files.length ? fileInput.files[0].name : 'No file selected';
+});
+
+$('#uploadForm').addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  if (!fileInput.files.length) { alert('Please choose a file first'); return; }
+  const fd = new FormData();
+  fd.append('file', fileInput.files[0]);
+  $('#uploadBtn').disabled = true;
+  try {
+    const res = await fetch('/api/upload', { method: 'POST', body: fd });
+    const j = await res.json();
+    addActivity(`Upload started: ${j.filename} (uploadId ${j.uploadId})`, 'info');
+    fileInput.value = ''; fileName.textContent='No file selected';
+  } catch (err) {
+    addActivity('Upload failed: ' + err.message, 'error');
+  } finally { $('#uploadBtn').disabled = false; }
+});
+
+/* ---------- websocket realtime ---------- */
+function initWebSocket(){
+  const proto = (location.protocol === 'https:') ? 'wss:' : 'ws:';
+  const url = proto + '//' + location.host + '/ws/dashboard/';
+  let ws;
+  try {
+    ws = new WebSocket(url);
+  } catch(e) {
+    addActivity('WebSocket init failed: ' + e.message, 'error');
+    return;
+  }
+  ws.onopen = () => addActivity('Realtime channel connected', 'info');
+  ws.onclose = () => addActivity('Realtime channel disconnected', 'warn');
+  ws.onerror = (e) => console.warn('ws err', e);
+
+  ws.onmessage = (ev) => {
+    try {
+      const data = JSON.parse(ev.data);
+      // data expected to be like { event: 'upload:status', nodeId, status, detail, ...}
+      if (data.event === 'upload:status') {
+        const id = data.nodeId;
+        const row = nodesMap.get(id);
+        if (row) {
+          // update "Last Upload" column (3rd cell index 3)
+          const lastCell = row.children[3];
+          lastCell.textContent = data.status + (data.detail ? ' ('+data.detail+')' : '');
+        }
+        addActivity(`Upload ${data.status} — ${id} ${data.detail || ''}`);
+      } else if (data.event === 'node:update') {
+        const id = data.nodeId;
+        addActivity(`Node ${id} is now ${data.status}`);
+        // refresh single row if exists
+        if (nodesMap.has(id)) refreshNodes(); else refreshNodes();
+      } else {
+        // generic event
+        addActivity(JSON.stringify(data));
+      }
+    } catch (err) {
+      console.warn('ws parse err', err);
+    }
+  };
+}
+
+/* ---------- init ---------- */
+$('#refreshBtn').addEventListener('click', ()=>refreshNodes());
+refreshNodes();
+initWebSocket();
+</script>
+</body>
+</html>
+
+
