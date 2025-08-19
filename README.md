@@ -18,8 +18,11 @@
       DATABASE_PASSWORD=
     
       DATABASE_NAME=
+    
       DATABASE_PORT=
+    
       DATABASE_HOST=
+    
 
   - CMS-Node-Management/cms_django   # Navigate to the CMS project
 
