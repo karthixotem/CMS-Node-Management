@@ -64,17 +64,6 @@
      # Nodes auto-register with CMS on startup.
 
 
-3) Frontend React.js Application
-
-    - cd ../node_management_frontend      # Navigate to the frontend
-
-    - npm install    # Install dependencies
-
-    - npm start    # Start the dashboard
-
-    #Open **http://localhost:3000** for the live dashboard.
-
-
 # 📘 API Summary
 **CMS**
 - `POST /api/nodes/register` → `{ nodeId, ip, port }`
